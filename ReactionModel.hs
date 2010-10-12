@@ -2,6 +2,10 @@
 -- +Require ModML-Units
 -- +Require ModML-Reactions
 -- +Require typehash
+-- +Require template-haskell
+-- +Require mtl
+-- +Require syb
+-- +Require containers
 module ReactionModel
 where
 import qualified ModML.Units.UnitsDAEModel as U
@@ -26,11 +30,6 @@ R.declareNamedTaggedCompartment "Reactor Vessel" "vessel"
 
 
 U.declareRealVariable [e|uKelvin|] "temperature" "temperature"
---data TemperatureTag = TemperatureTag deriving (D.Typeable, D.Data)
---temperatureTag = D.typeCode TemperatureTag
--- temperature :: Monad m => U.ModelBuilderT m U.RealVariable
---temperature = U.newNamedTaggedRealVariable uKelvin temperatureTag "temperature"
-
 temperatureM = temperature >>= return . U.RealVariableE
 
 -- Karach, S.P.; Osherov, V.I.
@@ -58,8 +57,8 @@ h2_o2_React compartment =
 -- http://kinetics.nist.gov/kinetics/Detail?id=1986TSA/HAM1087:264
 o_o_radical_Combine compartment =
     do
-      oradvar <- R.addEntity R.EssentialForProcess R.CantBeCreatedByProcess R.ModifiedByProcess (-2) (oxygenRadical `R.inCompartment` compartment)
-      o2var <- R.addEntity R.NotEssentialForProcess R.CanBeCreatedByProcess R.ModifiedByProcess 1 (oxygen2 `R.inCompartment` compartment)
+      oradvar <- R.addEntity R.EssentialForProcess R.CantBeCreatedByProcess R.ModifiedByProcess (-2) (oxygenRadical `R.withCompartment` compartment)
+      o2var <- R.addEntity R.NotEssentialForProcess R.CanBeCreatedByProcess R.ModifiedByProcess 1 (oxygen2 `R.withCompartment` compartment)
       R.rateEquation $ oradvar.**.U.realConstant U.dimensionless 3 .*.
                         (U.realConstant (uNthOrderPerConcentration 3) 1.89E7) .*.
                         (U.expX $ U.realConstant (uJoule $*$ uMole $**$ (-1)) 7483 ./.
@@ -67,7 +66,7 @@ o_o_radical_Combine compartment =
 
 reactionModel = do
   R.newAllCompartmentProcess h2_o2_React
-  R.newAllCompartmentProcess h2_o2_React
+  R.newAllCompartmentProcess o_o_radical_Combine
   -- Declare the initial presence of oxygen in vessel
   R.addEntityInstance (oxygen2 `R.inCompartment` vessel) (R.entityFromProcesses (U.realConstant uConcentration 1) (U.realConstant uFlux 0))
   -- And hydrogen...
