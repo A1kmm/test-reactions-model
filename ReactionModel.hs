@@ -75,7 +75,7 @@ reactionModel = do
 unitsModel :: Monad m => U.ModelBuilderT m ()
 unitsModel = do
   R.runReactionBuilderInUnitBuilder reactionModel
-  temperatureM `U.newEq` (U.realConstant uKelvin 1000)
+  temperatureM `U.newEq` (U.realConstant uKelvin 1300)
 
 model = B.buildModel $ do
   U.unitsToCore uSecond unitsModel
